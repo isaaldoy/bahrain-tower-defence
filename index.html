@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardian of the Pearl</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+        }
+        .game-container {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 900px; /* Increased max width for more space */
+            height: 90vh; /* Responsive height */
+            max-height: 900px; /* Max height for desktop */
+            position: relative; /* For message box and unit menu positioning */
+        }
+        canvas {
+            background-color: #e0f2f7; /* Light blue for sky/water */
+            display: block;
+            width: 100%;
+            flex-grow: 1; /* Canvas takes available space */
+            cursor: crosshair;
+        }
+        .ui-panel {
+            background-color: #1a202c; /* Dark charcoal */
+            padding: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 2px solid #2d3748;
+        }
+        .ui-button {
+            background-color: #e53e3e; /* Red from Bahrain flag */
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            margin: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #c53030;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+            background-image: linear-gradient(to bottom, #e53e3e, #c53030); /* Gradient */
+        }
+        .ui-button:hover {
+            background-color: #c53030;
+            transform: translateY(-2px);
+            background-image: linear-gradient(to bottom, #c53030, #a02c2c); /* Darker gradient */
+        }
+        .ui-button:active {
+            background-color: #9b2c2c;
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .ui-button:disabled {
+            background-color: #4a5568;
+            border-color: #2d3748;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            background-image: none;
+        }
+        .info-display {
+            color: #cbd5e0; /* Light gray text */
+            font-weight: bold;
+            margin: 0.5rem 1rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .lang-switcher {
+            background-color: #4a5568; /* Gray for language switcher */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            background-image: linear-gradient(to bottom, #4a5568, #2d3748);
+        }
+        .lang-switcher:hover {
+            background-color: #2d3748;
+            background-image: linear-gradient(to bottom, #2d3748, #1a202c);
+        }
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.5rem; /* Larger font for messages */
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            max-width: 90%;
+            border: 3px solid #e53e3e; /* Bahrain flag red border */
+        }
+        .message-box button {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            margin-top: 1.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            border: none;
+            background-image: linear-gradient(to bottom, #4299e1, #3182ce);
+        }
+        .message-box button:hover {
+            background-color: #3182ce;
+            background-image: linear-gradient(to bottom, #3182ce, #2b6cb0);
+        }
+
+        .unit-menu {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.85); /* Darker, more opaque */
+            border-radius: 10px;
+            padding: 0.6rem; /* Slightly more padding */
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem; /* Slightly more gap */
+            z-index: 900;
+            display: none; /* Hidden by default */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            border: 1px solid #cbd5e0; /* Light border */
+        }
+        .unit-menu button {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+            background-image: linear-gradient(to bottom, #4299e1, #3182ce);
+        }
+        .unit-menu button:hover {
+            background-color: #3182ce;
+            background-image: linear-gradient(to bottom, #3182ce, #2b6cb0);
+        }
+        .unit-menu button.sell-btn {
+            background-color: #e53e3e;
+            background-image: linear-gradient(to bottom, #e53e3e, #c53030);
+        }
+        .unit-menu button.sell-btn:hover {
+            background-color: #c53030;
+            background-image: linear-gradient(to bottom, #c53030, #a02c2c);
+        }
+        .unit-menu button.upgrade-choice-btn {
+            background-color: #48bb78; /* Green for upgrade choice */
+            background-image: linear-gradient(to bottom, #48bb78, #38a169);
+        }
+        .unit-menu button.upgrade-choice-btn:hover {
+            background-color: #38a169;
+            background-image: linear-gradient(to bottom, #38a169, #2f855a);
+        }
+
+
+        /* Main Menu Styling */
+        .main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a202c; /* Dark background */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100; /* Above everything else */
+            text-align: center;
+            padding: 2rem;
+        }
+        .main-menu h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #e53e3e; /* Red for title */
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .main-menu p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        .main-menu .menu-button {
+            background-color: #4299e1;
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            border: 2px solid #3182ce;
+            background-image: linear-gradient(to bottom, #4299e1, #3182ce);
+        }
+        .main-menu .menu-button:hover {
+            background-color: #3182ce;
+            transform: translateY(-3px);
+            background-image: linear-gradient(to bottom, #3182ce, #2b6cb0);
+        }
+        .main-menu .menu-button:active {
+            background-color: #2b6cb0;
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* In-game settings button */
+        #inGameSettingsBtn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(74, 85, 104, 0.8); /* Semi-transparent gray */
+            color: white;
+            padding: 0.75rem;
+            border-radius: 50%; /* Circular button */
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border: 2px solid #2d3748;
+            z-index: 950; /* Above game elements, below message box */
+            display: none; /* Hidden by default */
+        }
+        #inGameSettingsBtn:hover {
+            background-color: rgba(45, 55, 72, 0.9);
+            transform: scale(1.05);
+        }
+        #inGameSettingsBtn:active {
+            transform: scale(1.0);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Start Next Wave button as standard button */
+        #startNextWaveBtn.ui-button {
+            padding: 0.75rem 1.25rem; /* Standard padding */
+            width: auto; /* Auto width */
+            height: auto; /* Auto height */
+            border-radius: 10px; /* Standard border radius */
+            font-size: 1rem; /* Standard font size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Standard gap */
+        }
+        #startNextWaveBtn .button-text {
+            display: inline; /* Show text for standard button */
+        }
+
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .game-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            .ui-panel {
+                padding: 0.75rem;
+            }
+            .ui-button, .lang-switcher {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+                margin: 0.2rem;
+            }
+            .info-display {
+                font-size: 0.85rem;
+                margin: 0.2rem 0.4rem;
+            }
+            .message-box {
+                font-size: 1.1rem;
+                padding: 1.5rem;
+            }
+            .unit-menu {
+                padding: 0.3rem;
+                gap: 0.3rem;
+            }
+            .unit-menu button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+            .main-menu h1 {
+                font-size: 2.5rem;
+            }
+            .main-menu p {
+                font-size: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .main-menu .menu-button {
+                font-size: 1.4rem;
+                padding: 0.8rem 2rem;
+            }
+            #inGameSettingsBtn {
+                padding: 0.5rem;
+                font-size: 1.2rem;
+                top: 0.5rem;
+                right: 0.5rem;
+            }
+            #startNextWaveBtn.ui-button {
+                padding: 0.6rem 1rem; /* Adjust padding for smaller screens */
+                width: auto; /* Allow width to adjust */
+                height: auto; /* Allow height to adjust */
+                font-size: 0.85rem; /* Adjust font size for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="mainMenu" class="main-menu">
+            <h1 id="mainMenuTitle">Guardian of the Pearl</h1>
+            <p id="mainMenuInstructions"></p>
+            <div class="flex flex-col items-center gap-4">
+                <button id="playGameBtn" class="menu-button">Play Game</button>
+                <button id="settingsBtn" class="menu-button">Settings</button>
+                <button id="creditsBtn" class="menu-button">Credits</button>
+                <button id="exitGameBtn" class="menu-button">Exit Game</button>
+                <button id="mainMenuLangSwitcher" class="lang-switcher mt-4">English</button>
+                <p id="highScoreDisplay" class="info-display text-lg mt-4"></p>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-panel">
+            <div id="currencyDisplay" class="info-display"></div>
+            <div id="scoreDisplay" class="info-display"></div>
+            <div id="waveDisplay" class="info-display"></div>
+            <button id="deploySoldierBtn" class="ui-button">
+                <i class="fas fa-user-tie"></i> <span class="button-text">Deploy Soldier</span> (<span class="cost">50</span>)
+            </button>
+            <button id="deployShotgunBtn" class="ui-button">
+                <i class="fas fa-crosshairs"></i> <span class="button-text">Deploy Shotgun</span> (<span class="cost">75</span>)
+            </button>
+            <button id="deploySniperBtn" class="ui-button">
+                <i class="fas fa-bullseye"></i> <span class="button-text">Deploy Sniper</span> (<span class="cost">120</span>)
+            </button>
+            <button id="pearlOfPowerBtn" class="ui-button">
+                <i class="fas fa-gem"></i> <span class="button-text">Pearl of Power</span> (<span class="cooldown"></span>s)
+            </button>
+            <button id="startNextWaveBtn" class="ui-button">
+                <i class="fas fa-play"></i> <span class="button-text">Start Next Wave</span>
+            </button>
+            <button id="langSwitcher" class="lang-switcher">English</button>
+        </div>
+        <div id="messageBox" class="message-box">
+            <p id="messageText"></p>
+            <button id="messageBoxCloseBtn">OK</button>
+        </div>
+
+        <div id="unitMenu" class="unit-menu">
+            <!-- Buttons for upgrade choices or direct upgrade/sell will be dynamically added here -->
+        </div>
+
+        <button id="inGameSettingsBtn" style="display: none;"><i class="fas fa-cog"></i></button>
+    </div>
+
+    <script>
+        // Global variables for Firebase config and auth token (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // New approach: Define constants within a global object to ensure accessibility
+        window.GameConstants = {
+            CANVAS_WIDTH: 900,
+            CANVAS_HEIGHT: 600,
+            TILE_SIZE: 50,
+            PATH_COLOR_MAIN: '#d2b48c', // Tan for sand/road
+            PATH_COLOR_BORDER: '#8b4513', // SaddleBrown for road edges
+            DEFENSE_POINT_COLOR: '#4CAF50', // Green for defended area
+            UNIT_RADIUS: 15,
+            UNIT_DRAW_SCALE: 0.8, // Overall scaling for unit drawing
+            ENEMY_RADIUS: 10,
+            SELECT_COLOR: 'yellow'
+        };
+
+        // Game State
+        let currency = 200;
+        let score = 0; // New: Current game score
+        let highScore = localStorage.getItem('guardianOfThePearlHighScore') || 0; // New: High score from local storage
+        let wave = 0;
+        let lives = 10;
+        let gameRunning = false; // True when a wave is active
+        let placingUnit = null; // Stores type of unit being placed ('soldier', 'shotgun', 'sniper')
+        let selectedUnit = null; // Currently selected unit for upgrades/selling
+        let language = 'en'; // 'en' for English, 'ar' for Arabic
+        let pearlOfPowerCooldown = 0;
+        const PEARL_OF_POWER_MAX_COOLDOWN = 15;
+        let nationalAnthemPlaying = false; // To control anthem playback
+
+        // Game Objects Arrays
+        const units = [];
+        const enemies = [];
+        const projectiles = [];
+        const explosions = []; // For grenade explosions
+
+        // Waypoints for enemy path (simplified Manama Souq path)
+        const waypoints = [
+            { x: -50, y: GameConstants.CANVAS_HEIGHT * 0.7 }, // Start off-screen left, lower
+            { x: GameConstants.CANVAS_WIDTH * 0.2, y: GameConstants.CANVAS_HEIGHT * 0.7 },
+            { x: GameConstants.CANVAS_WIDTH * 0.3, y: GameConstants.CANVAS_HEIGHT * 0.5 }, // Adjusted Y
+            { x: GameConstants.CANVAS_WIDTH * 0.5, y: GameConstants.CANVAS_HEIGHT * 0.8 }, // Adjusted Y
+            { x: GameConstants.CANVAS_WIDTH * 0.7, y: GameConstants.CANVAS_HEIGHT * 0.6 }, // Adjusted Y
+            { x: GameConstants.CANVAS_WIDTH * 0.9, y: GameConstants.CANVAS_HEIGHT * 0.75 }, // Adjusted Y
+            { x: GameConstants.CANVAS_WIDTH + 50, y: GameConstants.CANVAS_HEIGHT * 0.75 } // End off-screen right (defense point)
+        ];
+
+        // UI Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const currencyDisplay = document.getElementById('currencyDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay'); // New score display
+        const waveDisplay = document.getElementById('waveDisplay');
+        const deploySoldierBtn = document.getElementById('deploySoldierBtn');
+        const deployShotgunBtn = document.getElementById('deployShotgunBtn');
+        const deploySniperBtn = document.getElementById('deploySniperBtn');
+        const pearlOfPowerBtn = document.getElementById('pearlOfPowerBtn');
+        const startNextWaveBtn = document.getElementById('startNextWaveBtn');
+        const langSwitcher = document.getElementById('langSwitcher');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+        const unitMenu = document.getElementById('unitMenu');
+        const pearlOfPowerCooldownDisplay = pearlOfPowerBtn.querySelector('.cooldown');
+        const inGameSettingsBtn = document.getElementById('inGameSettingsBtn'); // New in-game settings button
+
+        // Main Menu Elements
+        const mainMenu = document.getElementById('mainMenu');
+        const mainMenuTitle = document.getElementById('mainMenuTitle');
+        const mainMenuInstructions = document.getElementById('mainMenuInstructions');
+        const playGameBtn = document.getElementById('playGameBtn');
+        const settingsBtn = document.getElementById('settingsBtn'); // New
+        const creditsBtn = document.getElementById('creditsBtn');   // New
+        const exitGameBtn = document.getElementById('exitGameBtn'); // New
+        const mainMenuLangSwitcher = document.getElementById('mainMenuLangSwitcher');
+        const highScoreDisplay = document.getElementById('highScoreDisplay'); // New high score display
+
+
+        // Localization Dictionary
+        const translations = {
+            en: {
+                gameTitle: 'Guardian of the Pearl',
+                mainMenuInstructions: 'Defend Bahrain from waves of invaders! Deploy units, upgrade them, and use powerful abilities. Protect the Pearl!',
+                playGame: 'Play Game',
+                settings: 'Settings', // New
+                credits: 'Credits',   // New
+                exitGame: 'Exit Game', // New
+                currency: 'Dinars: ',
+                score: 'Score: ', // New
+                highScore: 'High Score: ', // New
+                wave: 'Wave: ',
+                lives: 'Lives: ',
+                deploySoldier: 'Deploy Soldier',
+                deployShotgun: 'Deploy Shotgun',
+                deploySniper: 'Deploy Sniper',
+                pearlOfPower: 'Pearl of Power',
+                cost: 'Cost: ',
+                startNextWave: 'Start Next Wave',
+                gameOver: 'Game Over! Bahrain has fallen!',
+                victory: 'Victory! Bahrain is safe!',
+                notEnoughMoney: 'Not enough Dinars!',
+                placingUnit: 'Tap to place ',
+                soldier: 'Soldier',
+                shotgunTrooper: 'Shotgun Trooper',
+                sniper: 'Sniper',
+                machineGun: 'Machine Gun',
+                grenadier: 'Grenadier',
+                upgrade: 'Upgrade',
+                sell: 'Sell',
+                unitDeployed: ' deployed!',
+                cannotPlaceHere: 'Cannot place unit here!',
+                bahrainiFlag: '🇧🇭',
+                yesSir: 'Yes, sir!',
+                ready: 'Ready!',
+                attack: 'Attack!',
+                fire: 'Fire!',
+                atYourService: 'At your service.',
+                robot: 'Robot',
+                mercenary: 'Mercenary',
+                boss: 'Boss',
+                unitUpgraded: ' upgraded to level ',
+                unitSold: ' sold for ',
+                isMaxLevel: ' is max level!',
+                onCooldown: ' is on cooldown!',
+                welcome: 'Welcome, Commander! Defend Bahrain!',
+                bossApproaching: 'Boss Approaching!',
+                newHighScore: 'New High Score!', // New
+                chooseUpgrade: 'Choose Upgrade Path:' // New
+            },
+            ar: {
+                gameTitle: 'حارس اللؤلؤ',
+                mainMenuInstructions: 'دافع عن البحرين من موجات الغزاة! انشر الوحدات، وقم بترقيتها، واستخدم قدرات قوية. احمِ اللؤلؤة!',
+                playGame: 'ابدأ اللعبة',
+                settings: 'الإعدادات', // New
+                credits: 'الاعتمادات',   // New
+                exitGame: 'الخروج من اللعبة', // New
+                currency: 'دينار: ',
+                score: 'النقاط: ', // New
+                highScore: 'أعلى النقاط: ', // New
+                wave: 'الموجة: ',
+                lives: 'الأرواح: ',
+                deploySoldier: 'نشر جندي',
+                deployShotgun: 'نشر جندي بندقية',
+                deploySniper: 'نشر قناص',
+                pearlOfPower: 'لؤلؤة القوة',
+                cost: 'التكلفة: ',
+                startNextWave: 'بدء الموجة التالية',
+                gameOver: 'انتهت اللعبة! سقطت البحرين!',
+                victory: 'النصر! البحرين آمنة!',
+                notEnoughMoney: 'لا يوجد دينار كافي!',
+                placingUnit: 'انقر لوضع ',
+                soldier: 'جندي',
+                shotgunTrooper: 'جندي بندقية',
+                sniper: 'قناص',
+                machineGun: 'مدفع رشاش',
+                grenadier: 'قاذف قنابل',
+                upgrade: 'ترقية',
+                sell: 'بيع',
+                unitDeployed: ' تم نشره!',
+                cannotPlaceHere: 'لا يمكن وضع الوحدة هنا!',
+                bahrainiFlag: '🇧🇭',
+                yesSir: 'نعم سيدي!',
+                ready: 'جاهز!',
+                attack: 'هجوم!',
+                fire: 'إطلاق النار!',
+                atYourService: 'في الخدمة.',
+                robot: 'روبوت',
+                mercenary: 'مرتزق',
+                boss: 'زعيم',
+                unitUpgraded: ' تمت ترقيته إلى المستوى ',
+                unitSold: ' بيع مقابل ',
+                isMaxLevel: ' هو في المستوى الأقصى!',
+                onCooldown: ' قيد التهدئة!',
+                welcome: 'مرحباً أيها القائد! دافع عن البحرين!',
+                bossApproaching: 'الزعيم يقترب!',
+                newHighScore: 'أعلى النقاط الجديدة!', // New
+                chooseUpgrade: 'اختر مسار الترقية:' // New
+            }
+        };
+
+        // Audio Context and Synth for simple sounds
+        let synth;
+        let fireSynth;
+        let hitSynth;
+        let coinSynth;
+        let explosionSynth;
+        let powerupSynth;
+        let anthemSynth;
+
+        function initializeAudio() {
+            try {
+                // Main synth for general sounds
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+                }).toDestination();
+
+                // More distinct sound for unit firing
+                fireSynth = new Tone.NoiseSynth({
+                    noise: { type: "white" },
+                    envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 }
+                }).toDestination();
+
+                // Sound for enemy hit
+                hitSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 8,
+                    envelope: { attack: 0.001, decay: 0.3, sustain: 0.01, release: 0.5 },
+                    oscillator: { type: "sine" },
+                    volume: -10
+                }).toDestination();
+
+                // Sound for collecting money
+                coinSynth = new Tone.PluckSynth().toDestination();
+
+                // Sound for explosion (grenade/power-up)
+                explosionSynth = new Tone.NoiseSynth({
+                    noise: { type: "pink" },
+                    envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.4 },
+                    volume: -5
+                }).toDestination();
+
+                // Sound for power-up activation
+                powerupSynth = new Tone.Synth({
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.01, decay: 0.5, sustain: 0.1, release: 1 },
+                    volume: -5
+                }).toDestination();
+
+                // Simple national anthem melody (very basic representation)
+                anthemSynth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+                    volume: -15
+                }).toDestination();
+
+                console.log("Audio context initialized.");
+            } catch (error) {
+                console.error("Error initializing audio context:", error);
+            }
+        }
+
+        // Bahrain National Anthem (Simplified Melody - C Major)
+        const bahrainAnthemMelody = [
+            { note: "C4", duration: "8n" }, { note: "D4", duration: "8n" }, { note: "E4", duration: "8n" }, { note: "F4", duration: "8n" },
+            { note: "G4", duration: "4n" }, { note: "C4", duration: "4n" }, { note: "G4", duration: "4n" }, { note: "C5", duration: "2n" },
+            { note: "G4", duration: "8n" }, { note: "F4", duration: "8n" }, { note: "E4", duration: "8n" }, { note: "D4", duration: "8n" },
+            { note: "C4", duration: "4n" }, { note: "G3", duration: "4n" }, { note: "C4", duration: "2n" }, { note: null, duration: "4n" } // Pause
+        ];
+
+        function playNationalAnthem() {
+            if (nationalAnthemPlaying) return;
+            nationalAnthemPlaying = true;
+            let time = Tone.now();
+            bahrainAnthemMelody.forEach(noteData => {
+                if (noteData.note) {
+                    anthemSynth.triggerAttackRelease(noteData.note, noteData.duration, time);
+                }
+                time += Tone.Time(noteData.duration).toSeconds();
+            });
+            // Stop playing after melody finishes
+            setTimeout(() => {
+                nationalAnthemPlaying = false;
+            }, time * 1000); // Convert Tone.now() time to milliseconds
+        }
+
+        // --- Game Object Classes ---
+
+        class Unit {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'soldier', 'shotgun', 'sniper'
+                this.level = 1;
+                this.upgradePath = 'none'; // 'none', 'machineGun', 'grenadier' for soldier
+                this.target = null;
+                this.voiceLineCooldown = 0;
+                this.voiceLines = {
+                    deploy: [translations[language].yesSir, translations[language].ready],
+                    attack: [translations[language].attack, translations[language].fire],
+                    idle: [translations[language].atYourService]
+                };
+                this.attackEffectLife = 0; // For drawing attack line
+
+                // Base stats
+                switch (this.type) {
+                    case 'soldier':
+                        this.damage = 10;
+                        this.range = 100;
+                        this.fireRate = 1; // shots per second
+                        this.cost = 50;
+                        this.color = '#4a5568'; // Dark grey uniform
+                        this.projectileColor = 'orange';
+                        break;
+                    case 'shotgun':
+                        this.damage = 25; // Higher damage
+                        this.range = 70; // Shorter range
+                        this.fireRate = 0.5; // Slower fire rate
+                        this.cost = 75;
+                        this.color = '#2c5282'; // Dark blue uniform
+                        this.projectileColor = 'yellow';
+                        break;
+                    case 'sniper':
+                        this.damage = 60; // Very high damage
+                        this.range = 250; // Very long range
+                        this.fireRate = 0.2; // Very slow fire rate
+                        this.cost = 120;
+                        this.color = '#38a169'; // Dark green uniform (camouflage)
+                        this.projectileColor = 'cyan';
+                        break;
+                }
+                this.attackCooldown = 0;
+            }
+
+            playVoiceLine(category) {
+                if (this.voiceLineCooldown <= 0 && this.voiceLines[category] && this.voiceLines[category].length > 0) {
+                    const line = this.voiceLines[category][Math.floor(Math.random() * this.voiceLines[category].length)];
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(line);
+                        utterance.lang = language === 'en' ? 'en-US' : 'ar-SA'; // Set language for speech
+                        window.speechSynthesis.speak(utterance);
+                    }
+                    this.voiceLineCooldown = 3;
+                }
+            }
+
+            update(deltaTime) {
+                this.attackCooldown -= deltaTime;
+                this.voiceLineCooldown -= deltaTime;
+                this.attackEffectLife -= deltaTime;
+
+                this.target = null;
+                let closestDist = Infinity;
+                for (const enemy of enemies) {
+                    const dist = Math.hypot(this.x - enemy.x, this.y - enemy.y);
+                    if (dist <= this.range && dist < closestDist) {
+                        closestDist = dist;
+                        this.target = enemy;
+                    }
+                }
+
+                if (this.target && this.attackCooldown <= 0) {
+                    this.attack();
+                    this.attackCooldown = 1 / this.fireRate;
+                    this.playVoiceLine('attack');
+                    this.attackEffectLife = 0.1;
+                } else if (!this.target && this.voiceLineCooldown <= 0) {
+                    this.playVoiceLine('idle');
+                }
+            }
+
+            attack() {
+                if (this.target) {
+                    if (this.upgradePath === 'grenadier') {
+                        // Grenadier fires a projectile that will explode
+                        projectiles.push(new Grenade(this.x, this.y, this.target, this.damage * 0.8, 40)); // Grenade deals 80% of damage, 40 AoE radius
+                        fireSynth.triggerAttackRelease("4n", Tone.now(), 0.5); // Deeper sound for grenade launch
+                    } else {
+                        // Standard projectile
+                        this.target.health -= this.damage;
+                        fireSynth.triggerAttackRelease("8n");
+                        hitSynth.triggerAttackRelease("C4", "8n");
+                        projectiles.push({
+                            startX: this.x,
+                            startY: this.y,
+                            endX: this.target.x,
+                            endY: this.target.y,
+                            color: this.projectileColor,
+                            life: 0.1,
+                            width: this.type === 'sniper' ? 3 : 2
+                        });
+                    }
+                }
+            }
+
+            draw() {
+                ctx.strokeStyle = '#2d3748';
+                ctx.lineWidth = 2 * GameConstants.UNIT_DRAW_SCALE;
+
+                const bodyWidth = GameConstants.UNIT_RADIUS * 1.6 * GameConstants.UNIT_DRAW_SCALE;
+                const bodyHeight = GameConstants.UNIT_RADIUS * 1.8 * GameConstants.UNIT_DRAW_SCALE;
+                const headRadius = GameConstants.UNIT_RADIUS * 0.7 * GameConstants.UNIT_DRAW_SCALE;
+                const legWidth = GameConstants.UNIT_RADIUS * 0.6 * GameConstants.UNIT_DRAW_SCALE;
+                const legHeight = GameConstants.UNIT_RADIUS * 0.8 * GameConstants.UNIT_DRAW_SCALE;
+                const weaponBaseX = this.x + GameConstants.UNIT_RADIUS * 0.8 * GameConstants.UNIT_DRAW_SCALE;
+
+                // Body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - bodyWidth / 2, this.y - bodyHeight / 2, bodyWidth, bodyHeight);
+                ctx.strokeRect(this.x - bodyWidth / 2, this.y - bodyHeight / 2, bodyWidth, bodyHeight);
+
+                // Legs
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - bodyWidth / 2, this.y + bodyHeight / 2, legWidth, legHeight);
+                ctx.fillRect(this.x + bodyWidth / 2 - legWidth, this.y + bodyHeight / 2, legWidth, legHeight);
+                ctx.strokeRect(this.x - bodyWidth / 2, this.y + bodyHeight / 2, legWidth, legHeight);
+                ctx.strokeRect(this.x + bodyWidth / 2 - legWidth, this.y + bodyHeight / 2, legWidth, legHeight);
+
+
+                // Head (Helmet)
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - bodyHeight / 2 - headRadius, headRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#6b7280'; /* Lighter grey for helmet */
+                ctx.fill();
+                ctx.stroke();
+
+                // Helmet brim (simple rectangle for soldier/shotgun)
+                if (this.type === 'soldier' || this.type === 'shotgun') {
+                    ctx.fillStyle = '#555';
+                    ctx.fillRect(this.x - headRadius, this.y - bodyHeight / 2 - headRadius * 2, headRadius * 2, headRadius * 0.5);
+                }
+                // Sniper ghillie hood effect
+                if (this.type === 'sniper') {
+                    ctx.fillStyle = 'rgba(56, 161, 105, 0.7)'; /* Semi-transparent green */
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - headRadius * 1.5, this.y - bodyHeight / 2 - headRadius * 2.5);
+                    ctx.lineTo(this.x + headRadius * 1.5, this.y - bodyHeight / 2 - headRadius * 2.5);
+                    ctx.lineTo(this.x + headRadius * 1.2, this.y - bodyHeight / 2 - headRadius * 1.5);
+                    ctx.lineTo(this.x - headRadius * 1.2, this.y - bodyHeight / 2 - headRadius * 1.5);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+
+                // Weapon
+                ctx.fillStyle = '#333';
+                if (this.type === 'soldier') {
+                    if (this.upgradePath === 'machineGun') {
+                        ctx.fillRect(weaponBaseX, this.y - 8 * GameConstants.UNIT_DRAW_SCALE, 20 * GameConstants.UNIT_DRAW_SCALE, 6 * GameConstants.UNIT_DRAW_SCALE); // Machine gun body
+                        ctx.fillRect(weaponBaseX + 20 * GameConstants.UNIT_DRAW_SCALE, this.y - 6 * GameConstants.UNIT_DRAW_SCALE, 7 * GameConstants.UNIT_DRAW_SCALE, 3 * GameConstants.UNIT_DRAW_SCALE); // Barrel
+                    } else if (this.upgradePath === 'grenadier') {
+                        ctx.fillRect(weaponBaseX, this.y - 5 * GameConstants.UNIT_DRAW_SCALE, 18 * GameConstants.UNIT_DRAW_SCALE, 8 * GameConstants.UNIT_DRAW_SCALE); // Grenade launcher body
+                        ctx.fillRect(weaponBaseX + 18 * GameConstants.UNIT_DRAW_SCALE, this.y - 3 * GameConstants.UNIT_DRAW_SCALE, 5 * GameConstants.UNIT_DRAW_SCALE, 4 * GameConstants.UNIT_DRAW_SCALE); // Barrel
+                    } else { // Standard rifle
+                        ctx.fillRect(weaponBaseX, this.y - 5 * GameConstants.UNIT_DRAW_SCALE, 15 * GameConstants.UNIT_DRAW_SCALE, 4 * GameConstants.UNIT_DRAW_SCALE); // Rifle body
+                        ctx.fillRect(weaponBaseX + 15 * GameConstants.UNIT_DRAW_SCALE, this.y - 4 * GameConstants.UNIT_DRAW_SCALE, 5 * GameConstants.UNIT_DRAW_SCALE, 2 * GameConstants.UNIT_DRAW_SCALE); // Barrel
+                    }
+                } else if (this.type === 'shotgun') {
+                    ctx.fillRect(weaponBaseX, this.y - 7 * GameConstants.UNIT_DRAW_SCALE, 18 * GameConstants.UNIT_DRAW_SCALE, 6 * GameConstants.UNIT_DRAW_SCALE); // Shotgun body
+                    ctx.fillRect(weaponBaseX + 18 * GameConstants.UNIT_DRAW_SCALE, this.y - 5 * GameConstants.UNIT_DRAW_SCALE, 4 * GameConstants.UNIT_DRAW_SCALE, 2 * GameConstants.UNIT_DRAW_SCALE); // Barrel
+                } else if (this.type === 'sniper') {
+                    ctx.fillRect(weaponBaseX, this.y - 3 * GameConstants.UNIT_DRAW_SCALE, 30 * GameConstants.UNIT_DRAW_SCALE, 3 * GameConstants.UNIT_DRAW_SCALE); // Sniper rifle body
+                    ctx.fillRect(weaponBaseX + 30 * GameConstants.UNIT_DRAW_SCALE, this.y - 2 * GameConstants.UNIT_DRAW_SCALE, 8 * GameConstants.UNIT_DRAW_SCALE, 1 * GameConstants.UNIT_DRAW_SCALE); // Barrel
+                    ctx.fillRect(weaponBaseX + 5 * GameConstants.UNIT_DRAW_SCALE, this.y - 6 * GameConstants.UNIT_DRAW_SCALE, 5 * GameConstants.UNIT_DRAW_SCALE, 2 * GameConstants.UNIT_DRAW_SCALE); // Scope
+                }
+
+                // Draw Bahraini flag emoji
+                ctx.font = 'bold ' + (14 * GameConstants.UNIT_DRAW_SCALE) + 'px sans-serif'; // Adjust font size for emoji
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(translations[language].bahrainiFlag, this.x, this.y - GameConstants.UNIT_RADIUS * 0.2 * GameConstants.UNIT_DRAW_SCALE);
+
+
+                // Draw level
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold ' + (10 * GameConstants.UNIT_DRAW_SCALE) + 'px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.level, this.x, this.y + GameConstants.UNIT_RADIUS * 1.5 * GameConstants.UNIT_DRAW_SCALE + 5);
+
+                // Draw range (only when selected)
+                if (selectedUnit === this) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+                    ctx.strokeStyle = GameConstants.SELECT_COLOR;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            upgrade(path = null) {
+                const upgradeCost = Math.floor(this.cost * (this.level * 0.75));
+                if (this.level >= 3) {
+                    showMessageBox((this.type === 'soldier' ? translations[language].soldier : this.type === 'shotgun' ? translations[language].shotgunTrooper : translations[language].sniper) + translations[language].isMaxLevel);
+                    return;
+                }
+                if (currency < upgradeCost) {
+                    showMessageBox(translations[language].notEnoughMoney);
+                    return;
+                }
+
+                currency -= upgradeCost;
+                this.level++;
+
+                if (this.type === 'soldier' && this.level === 2 && path) {
+                    this.upgradePath = path;
+                    if (path === 'machineGun') {
+                        this.damage *= 1.1; // Slight damage increase
+                        this.fireRate *= 2.5; // Huge fire rate increase
+                        this.range *= 1.05;
+                    } else if (path === 'grenadier') {
+                        this.damage *= 1.8; // Large damage increase (AoE factor)
+                        this.fireRate *= 0.7; // Slower fire rate for grenades
+                        this.range *= 1.1;
+                    }
+                } else {
+                    // Generic upgrade for other units or subsequent levels
+                    this.damage *= 1.25;
+                    this.fireRate *= 1.15;
+                    this.range *= 1.08;
+                }
+
+                showMessageBox((this.type === 'soldier' ? translations[language].soldier : this.type === 'shotgun' ? translations[language].shotgunTrooper : translations[language].sniper) + translations[language].unitUpgraded + this.level + '!');
+                updateUI();
+                hideUnitMenu();
+            }
+
+            sell() {
+                const refund = Math.floor(this.cost * this.level * 0.7);
+                currency += refund;
+                units.splice(units.indexOf(this), 1);
+                selectedUnit = null;
+                updateUI();
+                showMessageBox((this.type === 'soldier' ? translations[language].soldier : this.type === 'shotgun' ? translations[language].shotgunTrooper : translations[language].sniper) + translations[language].unitSold + refund + ' ' + translations[language].currency.replace(':', '') + '!');
+                hideUnitMenu();
+            }
+        }
+
+        class Grenade {
+            constructor(startX, startY, target, damage, radius) {
+                this.x = startX;
+                this.y = startY;
+                this.target = target;
+                this.damage = damage;
+                this.radius = radius; // AoE radius
+                this.speed = 200; // Pixels per second
+                this.life = 1; // Max travel time before despawning if target is lost
+                this.color = 'darkgreen'; // Grenade color
+                this.size = 5; // Grenade visual size
+            }
+
+            update(deltaTime) {
+                if (!this.target || this.target.health <= 0) {
+                    this.life = 0; // Despawn if target is gone
+                    return;
+                }
+
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distance = Math.hypot(dx, dy);
+
+                if (distance < this.speed * deltaTime) {
+                    // Reached target, explode
+                    this.explode();
+                    this.life = 0; // Mark for removal
+                } else {
+                    const angle = Math.atan2(dy, dx);
+                    this.x += Math.cos(angle) * this.speed * deltaTime;
+                    this.y += Math.sin(angle) * this.speed * deltaTime;
+                }
+                this.life -= deltaTime;
+            }
+
+            explode() {
+                explosionSynth.triggerAttackRelease("0.5s"); // Explosion sound
+                explosions.push({ x: this.x, y: this.y, radius: this.radius, life: 0.3 }); // Add visual explosion
+
+                enemies.forEach(enemy => {
+                    const dist = Math.hypot(this.x - enemy.x, this.y - enemy.y);
+                    if (dist <= this.radius) {
+                        enemy.health -= this.damage; // Deal damage to all enemies in radius
+                        hitSynth.triggerAttackRelease("C3", "8n"); // Hit sound for each enemy
+                    }
+                });
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+
+        class Enemy {
+            constructor(x, y, type, wave) {
+                this.type = type; // 'robot', 'mercenary', 'boss'
+                // Difficulty scaling: base health + (wave factor * wave number)
+                this.health = (type === 'robot') ? (100 + (wave * 5)) : (type === 'mercenary' ? (150 + (wave * 10)) : (500 + (wave * 25))); // Softer initial scaling
+                this.maxHealth = this.health;
+                // Difficulty scaling: base speed + (wave factor * wave number)
+                this.speed = (type === 'robot') ? (50 + (wave * 1)) : (type === 'mercenary' ? (40 + (wave * 0.5)) : (25 + (wave * 0.2))); // Softer initial scaling
+                this.bounty = (type === 'robot') ? (10 + (wave * 1)) : (type === 'mercenary' ? (15 + (wave * 2)) : (100 + (wave * 10)));
+                this.currentWaypoint = 0;
+                this.x = waypoints[0].x;
+                this.y = waypoints[0].y;
+                this.color = (type === 'robot') ? '#718096' : (type === 'mercenary' ? '#805ad5' : '#e53e3e');
+                this.radius = (type === 'boss') ? GameConstants.ENEMY_RADIUS * 1.8 : GameConstants.ENEMY_RADIUS;
+            }
+
+            update(deltaTime) {
+                if (this.currentWaypoint < waypoints.length) {
+                    const targetWaypoint = waypoints[this.currentWaypoint];
+                    const dx = targetWaypoint.x - this.x;
+                    const dy = targetWaypoint.y - this.y;
+                    const distance = Math.hypot(dx, dy);
+
+                    if (distance < this.speed * deltaTime) {
+                        this.x = targetWaypoint.x;
+                        this.y = targetWaypoint.y;
+                        this.currentWaypoint++;
+                    } else {
+                        const angle = Math.atan2(dy, dx);
+                        this.x += Math.cos(angle) * this.speed * deltaTime;
+                        this.y += Math.sin(angle) * this.speed * deltaTime;
+                    }
+                } else {
+                    lives--;
+                    enemies.splice(enemies.indexOf(this), 1);
+                    updateUI();
+                    if (lives <= 0) {
+                        endGame(false);
+                    }
+                }
+            }
+
+            draw() {
+                ctx.strokeStyle = '#2d3748';
+                ctx.lineWidth = 1;
+
+                // Body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+                ctx.strokeRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+
+                // Head (triangle for robot, circle for mercenary/boss)
+                ctx.fillStyle = '#6b7280';
+                if (this.type === 'robot') {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y - this.radius * 1.5);
+                    ctx.lineTo(this.x - this.radius, this.y - this.radius * 0.5);
+                    ctx.lineTo(this.x + this.radius, this.y - this.radius * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y - this.radius, this.radius * 0.8, 0, Math.PI * 2);
+                    ctx.fillStyle = this.type === 'mercenary' ? '#a0aec0' : '#fbd38d'; /* Lighter color for head */
+                    ctx.fill();
+                    ctx.stroke();
+                }
+
+                // Health bar
+                const healthBarWidth = this.radius * 2;
+                const healthBarHeight = 4;
+                const healthPercentage = this.health / this.maxHealth;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, healthBarWidth, healthBarHeight);
+                ctx.fillStyle = 'lime';
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, healthBarWidth * healthPercentage, healthBarHeight);
+
+                // Boss indicator
+                if (this.type === 'boss') {
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 12px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(translations[language].boss, this.x, this.y + this.radius + 8);
+                }
+            }
+        }
+
+        // --- Game Functions ---
+
+        function resetGame() {
+            currency = 200;
+            score = 0;
+            wave = 0;
+            lives = 10;
+            gameRunning = false;
+            placingUnit = null;
+            selectedUnit = null;
+            pearlOfPowerCooldown = 0;
+            units.length = 0;
+            enemies.length = 0;
+            projectiles.length = 0;
+            explosions.length = 0;
+            updateUI();
+            hideUnitMenu();
+            hideMessageBox();
+            drawGame(); // Clear canvas
+        }
+
+        function resizeCanvas() {
+            canvas.width = GameConstants.CANVAS_WIDTH;
+            canvas.height = GameConstants.CANVAS_HEIGHT;
+            drawGame();
+        }
+
+        function updateUI() {
+            currencyDisplay.textContent = translations[language].currency + Math.floor(currency);
+            scoreDisplay.textContent = translations[language].score + Math.floor(score); // Update score display
+            waveDisplay.textContent = translations[language].wave + wave + ' | ' + translations[language].lives + lives;
+            document.title = translations[language].gameTitle;
+
+            // Update button texts
+            deploySoldierBtn.querySelector('.button-text').textContent = translations[language].deploySoldier;
+            deploySoldierBtn.querySelector('.cost').textContent = '50';
+            deployShotgunBtn.querySelector('.button-text').textContent = translations[language].deployShotgun;
+            deployShotgunBtn.querySelector('.cost').textContent = '75';
+            deploySniperBtn.querySelector('.button-text').textContent = translations[language].deploySniper;
+            deploySniperBtn.querySelector('.cost').textContent = '120';
+            pearlOfPowerBtn.querySelector('.button-text').textContent = translations[language].pearlOfPower;
+
+            // Update Pearl of Power cooldown display
+            if (pearlOfPowerCooldown > 0) {
+                pearlOfPowerCooldownDisplay.textContent = Math.ceil(pearlOfPowerCooldown);
+                pearlOfPowerBtn.disabled = true;
+            } else {
+                pearlOfPowerCooldownDisplay.textContent = '';
+                pearlOfPowerBtn.disabled = false;
+            }
+
+            // startNextWaveBtn is now a standard button with text
+            startNextWaveBtn.querySelector('.button-text').textContent = translations[language].startNextWave;
+            // Enable/disable Start Next Wave button based on game state
+            startNextWaveBtn.disabled = gameRunning || enemies.length > 0;
+            // Ensure the button is enabled after main menu is hidden and before first wave
+            if (!gameRunning && wave === 0 && enemies.length === 0 && mainMenu.style.display === 'none') {
+                 startNextWaveBtn.disabled = false;
+            }
+
+            if (startNextWaveBtn.disabled) {
+                startNextWaveBtn.style.backgroundColor = '#4a5568';
+                startNextWaveBtn.style.borderColor = '#2d3748';
+            } else {
+                startNextWaveBtn.style.backgroundColor = '#e53e3e';
+                startNextWaveBtn.style.borderColor = '#c53030';
+            }
+
+
+            langSwitcher.textContent = language === 'en' ? 'العربية' : 'English';
+
+            // Update Main Menu text
+            mainMenuTitle.textContent = translations[language].gameTitle;
+            mainMenuInstructions.textContent = translations[language].mainMenuInstructions;
+            playGameBtn.textContent = translations[language].playGame;
+            settingsBtn.textContent = translations[language].settings; // New
+            creditsBtn.textContent = translations[language].credits;   // New
+            exitGameBtn.textContent = translations[language].exitGame; // New
+            mainMenuLangSwitcher.textContent = language === 'en' ? 'العربية' : 'English';
+            highScoreDisplay.textContent = translations[language].highScore + Math.floor(highScore); // Update high score display
+
+            // Toggle in-game settings button visibility
+            inGameSettingsBtn.style.display = mainMenu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT);
+
+            // Draw background (blue sky gradient)
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, GameConstants.CANVAS_HEIGHT * 0.7);
+            skyGradient.addColorStop(0, '#87CEEB'); // Sky blue
+            skyGradient.addColorStop(1, '#ADD8E6'); // Lighter blue
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT * 0.7);
+
+            // Draw ground gradient (starts where sky ends, slightly higher than road)
+            const groundGradient = ctx.createLinearGradient(0, GameConstants.CANVAS_HEIGHT * 0.7, 0, GameConstants.CANVAS_HEIGHT);
+            groundGradient.addColorStop(0, '#f0e68c'); // Khaki ground
+            groundGradient.addColorStop(1, '#d2b48c'); // Tan desert
+            ctx.fillStyle = groundGradient;
+            ctx.fillRect(0, GameConstants.CANVAS_HEIGHT * 0.7, GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT * 0.3);
+
+
+            // Draw distant city silhouette (restored simpler version)
+            ctx.fillStyle = '#333'; // Dark grey for city
+            ctx.beginPath();
+            ctx.moveTo(0, GameConstants.CANVAS_HEIGHT * 0.4);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.1, GameConstants.CANVAS_HEIGHT * 0.35);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.2, GameConstants.CANVAS_HEIGHT * 0.4);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.25, GameConstants.CANVAS_HEIGHT * 0.3);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.35, GameConstants.CANVAS_HEIGHT * 0.38);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.4, GameConstants.CANVAS_HEIGHT * 0.32);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.5, GameConstants.CANVAS_HEIGHT * 0.4);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.6, GameConstants.CANVAS_HEIGHT * 0.3);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.7, GameConstants.CANVAS_HEIGHT * 0.35);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.8, GameConstants.CANVAS_HEIGHT * 0.28);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH * 0.9, GameConstants.CANVAS_HEIGHT * 0.35);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT * 0.3);
+            ctx.lineTo(GameConstants.CANVAS_WIDTH, GameConstants.CANVAS_HEIGHT * 0.4);
+            ctx.lineTo(0, GameConstants.CANVAS_HEIGHT * 0.4);
+            ctx.closePath();
+            ctx.fill();
+
+
+            // Draw desert flora (cacti) - simple shapes
+            ctx.fillStyle = '#2f855a'; // Dark green for cacti
+            const cacti = [
+                { x: GameConstants.CANVAS_WIDTH * 0.15, y: GameConstants.CANVAS_HEIGHT * 0.75, scale: 0.8 },
+                { x: GameConstants.CANVAS_WIDTH * 0.8, y: GameConstants.CANVAS_HEIGHT * 0.8, scale: 1.0 },
+                { x: GameConstants.CANVAS_WIDTH * 0.05, y: GameConstants.CANVAS_HEIGHT * 0.9, scale: 0.6 },
+                { x: GameConstants.CANVAS_WIDTH * 0.95, y: GameConstants.CANVAS_HEIGHT * 0.7, scale: 0.7 }
+            ];
+            cacti.forEach(c => {
+                ctx.fillRect(c.x, c.y, 10 * c.scale, 30 * c.scale); // Main body
+                ctx.fillRect(c.x - 15 * c.scale, c.y + 10 * c.scale, 10 * c.scale, 20 * c.scale); // Left arm
+                ctx.fillRect(c.x + 15 * c.scale, c.y + 5 * c.scale, 10 * c.scale, 25 * c.scale); // Right arm
+            });
+
+
+            // Draw path with multiple layers for depth
+            ctx.lineCap = 'round';
+
+            // Base path (wider, darker)
+            ctx.strokeStyle = GameConstants.PATH_COLOR_BORDER;
+            ctx.lineWidth = 40;
+            ctx.beginPath();
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
+            for (let i = 1; i < waypoints.length; i++) {
+                ctx.lineTo(waypoints[i].x, waypoints[i].y);
+            }
+            ctx.stroke();
+
+            // Main road color
+            ctx.strokeStyle = GameConstants.PATH_COLOR_MAIN;
+            ctx.lineWidth = 30;
+            ctx.beginPath();
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
+            for (let i = 1; i < waypoints.length; i++) {
+                ctx.lineTo(waypoints[i].x, waypoints[i].y);
+            }
+            ctx.stroke();
+
+            // Dashed center line (road marking)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; // White, semi-transparent
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]); // Dashed line
+            ctx.beginPath();
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
+            for (let i = 1; i < waypoints.length; i++) {
+                ctx.lineTo(waypoints[i].x, waypoints[i].y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            ctx.lineCap = 'butt'; // Reset line cap
+
+
+            // Draw defense point (end of path)
+            const lastWaypoint = waypoints[waypoints.length - 1];
+            ctx.beginPath();
+            ctx.arc(lastWaypoint.x, lastWaypoint.y, GameConstants.TILE_SIZE / 2, 0, Math.PI * 2);
+            ctx.fillStyle = GameConstants.DEFENSE_POINT_COLOR;
+            ctx.fill();
+            ctx.strokeStyle = 'darkgreen';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Inter'; // Larger flag
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(translations[language].bahrainiFlag, lastWaypoint.x, lastWaypoint.y);
+
+
+            // Draw units
+            units.forEach(unit => unit.draw());
+
+            // Draw enemies
+            enemies.forEach(enemy => enemy.draw());
+
+            // Draw projectiles (bullets and grenades)
+            projectiles.forEach(p => p.draw ? p.draw() : drawBullet(p)); // Check if it's a Grenade object or simple bullet
+
+            // Draw explosions
+            explosions.forEach(exp => {
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, exp.radius * (1 - exp.life), 0, Math.PI * 2); // Shrink as it fades
+                ctx.fillStyle = `rgba(255, 165, 0, ${exp.life})`; // Orange, fades out
+                ctx.fill();
+            });
+
+            // Draw placement ghost if placing unit
+            if (placingUnit) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = GameConstants.CANVAS_WIDTH / rect.width;
+                const scaleY = GameConstants.CANVAS_HEIGHT / rect.height;
+
+                const mouseX = (lastPointerX - rect.left) * scaleX;
+                const mouseY = (lastPointerY - rect.top) * scaleY;
+
+                // Draw ghost unit (simplified version of actual unit drawing)
+                ctx.strokeStyle = 'rgba(45, 55, 72, 0.7)';
+                ctx.lineWidth = 2 * GameConstants.UNIT_DRAW_SCALE;
+                ctx.fillStyle = 'rgba(74, 85, 104, 0.5)';
+
+                const ghostBodyWidth = GameConstants.UNIT_RADIUS * 1.6 * GameConstants.UNIT_DRAW_SCALE;
+                const ghostBodyHeight = GameConstants.UNIT_RADIUS * 1.8 * GameConstants.UNIT_DRAW_SCALE;
+                const ghostHeadRadius = GameConstants.UNIT_RADIUS * 0.7 * GameConstants.UNIT_DRAW_SCALE;
+                const ghostLegWidth = GameConstants.UNIT_RADIUS * 0.6 * GameConstants.UNIT_DRAW_SCALE;
+                const ghostLegHeight = GameConstants.UNIT_RADIUS * 0.8 * GameConstants.UNIT_DRAW_SCALE;
+
+                // Ghost Body
+                ctx.fillRect(mouseX - ghostBodyWidth / 2, mouseY - ghostBodyHeight / 2, ghostBodyWidth, ghostBodyHeight);
+                ctx.strokeRect(mouseX - ghostBodyWidth / 2, mouseY - ghostBodyHeight / 2, ghostBodyWidth, ghostBodyHeight);
+
+                // Ghost Legs
+                ctx.fillRect(mouseX - ghostBodyWidth / 2, mouseY + ghostBodyHeight / 2, ghostLegWidth, ghostLegHeight);
+                ctx.fillRect(mouseX + ghostBodyWidth / 2 - ghostLegWidth, mouseY + ghostBodyHeight / 2, ghostLegWidth, ghostLegHeight);
+                ctx.strokeRect(mouseX - ghostBodyWidth / 2, mouseY + ghostBodyHeight / 2, ghostLegWidth, ghostLegHeight);
+                ctx.strokeRect(mouseX + ghostBodyWidth / 2 - ghostLegWidth, mouseY + ghostBodyHeight / 2, ghostLegWidth, ghostLegHeight);
+
+                // Ghost Head
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY - ghostBodyHeight / 2 - ghostHeadRadius, ghostHeadRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(107, 114, 128, 0.5)';
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw range for placement
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, GameConstants.UNIT_RADIUS * 5, 0, Math.PI * 2); // Default range for ghost
+                if (placingUnit === 'sniper') {
+                    ctx.arc(mouseX, mouseY, GameConstants.UNIT_RADIUS * 10, 0, Math.PI * 2); // Larger range for sniper ghost
+                }
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        // Helper function to draw simple bullet projectiles
+        function drawBullet(p) {
+            ctx.beginPath();
+            ctx.moveTo(p.startX, p.startY);
+            ctx.lineTo(p.endX, p.endY);
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.width || 2;
+            ctx.stroke();
+        }
+
+
+        let lastFrameTime = 0;
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastFrameTime) / 1000;
+            lastFrameTime = currentTime;
+
+            if (gameRunning) {
+                if (pearlOfPowerCooldown > 0) {
+                    pearlOfPowerCooldown -= deltaTime;
+                    if (pearlOfPowerCooldown < 0) pearlOfPowerCooldown = 0;
+                    updateUI();
+                }
+
+                // Update and remove enemies
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    enemies[i].update(deltaTime);
+                    if (enemies[i].health <= 0) {
+                        score += enemies[i].bounty; // Add bounty to score
+                        currency += enemies[i].bounty;
+                        enemies.splice(i, 1);
+                        coinSynth.triggerAttackRelease("C5", "8n");
+                        updateUI();
+                    }
+                }
+
+                // Update units
+                units.forEach(unit => unit.update(deltaTime));
+
+                // Update and remove projectiles (bullets and grenades)
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    const p = projectiles[i];
+                    if (p.update) { // If it's a Grenade object
+                        p.update(deltaTime);
+                    } else { // If it's a simple bullet object
+                        p.life -= deltaTime;
+                    }
+                    if (p.life <= 0) {
+                        projectiles.splice(i, 1);
+                    }
+                }
+
+                // Update and remove explosions
+                for (let i = explosions.length - 1; i >= 0; i--) {
+                    explosions[i].life -= deltaTime;
+                    if (explosions[i].life <= 0) {
+                        explosions.splice(i, 1);
+                    }
+                }
+
+                if (enemies.length === 0 && gameRunning) {
+                    gameRunning = false;
+                    updateUI(); // Update UI to re-enable "Start Next Wave" button
+                    if (wave >= 10) { // Example: Game ends after 10 waves
+                        endGame(true);
+                    }
+                }
+            }
+
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnWave() {
+            wave++;
+            gameRunning = true;
+            updateUI(); // Update UI to disable "Start Next Wave" button
+
+            let numEnemies = 0;
+            let mercenaryChance = 0;
+
+            if (wave <= 3) { // Easy waves
+                numEnemies = 5 + (wave * 2);
+                mercenaryChance = 0.1; // 10% chance
+            } else if (wave <= 7) { // Medium waves
+                numEnemies = 10 + (wave * 3);
+                mercenaryChance = 0.4; // 40% chance
+            } else { // Hard waves
+                numEnemies = 15 + (wave * 4);
+                mercenaryChance = 0.6; // 60% chance
+            }
+
+            let spawnDelay = 0;
+            for (let i = 0; i < numEnemies; i++) {
+                setTimeout(() => {
+                    let enemyType = 'robot';
+                    if (Math.random() < mercenaryChance) {
+                        enemyType = 'mercenary';
+                    }
+
+                    // Boss logic: always the last enemy of every 5th wave
+                    if (wave % 5 === 0 && i === numEnemies - 1) {
+                        enemyType = 'boss';
+                        showMessageBox(translations[language].bossApproaching);
+                        playNationalAnthem();
+                    }
+                    enemies.push(new Enemy(0, 0, enemyType, wave));
+                }, spawnDelay);
+                spawnDelay += 400; // Spawn every 0.4 seconds
+            }
+        }
+
+        function endGame(isVictory) {
+            gameRunning = false;
+            if (isVictory) {
+                showMessageBox(translations[language].victory);
+            } else {
+                showMessageBox(translations[language].gameOver);
+            }
+
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('guardianOfThePearlHighScore', highScore);
+                showMessageBox(messageText.textContent + '\n' + translations[language].newHighScore + ' ' + Math.floor(highScore) + '!');
+            }
+
+            // Reset game state for replay
+            resetGame(); // Use the new reset function
+            mainMenu.style.display = 'flex'; // Show main menu again
+        }
+
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        function hideMessageBox() {
+            messageBox.style.display = 'none';
+        }
+
+        function showUnitMenu(unit, clientX, clientY) {
+            selectedUnit = unit;
+            unitMenu.innerHTML = ''; // Clear previous buttons
+
+            const upgradeCost = Math.floor(selectedUnit.cost * (selectedUnit.level * 0.75));
+
+            if (selectedUnit.type === 'soldier' && selectedUnit.level === 1) {
+                // Soldier Level 1: Choose path
+                const chooseText = document.createElement('p');
+                chooseText.textContent = translations[language].chooseUpgrade;
+                chooseText.style.color = 'white';
+                chooseText.style.textAlign = 'center';
+                chooseText.style.marginBottom = '0.5rem';
+                unitMenu.appendChild(chooseText);
+
+                const machineGunBtn = document.createElement('button');
+                machineGunBtn.textContent = translations[language].machineGun + ' (' + upgradeCost + ')';
+                machineGunBtn.classList.add('upgrade-choice-btn');
+                machineGunBtn.onclick = () => selectedUnit.upgrade('machineGun');
+                unitMenu.appendChild(machineGunBtn);
+
+                const grenadierBtn = document.createElement('button');
+                grenadierBtn.textContent = translations[language].grenadier + ' (' + upgradeCost + ')';
+                grenadierBtn.classList.add('upgrade-choice-btn');
+                grenadierBtn.onclick = () => selectedUnit.upgrade('grenadier');
+                unitMenu.appendChild(grenadierBtn);
+
+            } else if (selectedUnit.level < 3) {
+                // General upgrade button for other units or soldier level 2
+                const upgradeBtn = document.createElement('button');
+                upgradeBtn.textContent = translations[language].upgrade + ' (' + upgradeCost + ')';
+                upgradeBtn.onclick = () => selectedUnit.upgrade();
+                unitMenu.appendChild(upgradeBtn);
+            } else {
+                // Max level message
+                const maxLevelText = document.createElement('p');
+                maxLevelText.textContent = translations[language].isMaxLevel;
+                maxLevelText.style.color = 'white';
+                maxLevelText.style.textAlign = 'center';
+                maxLevelText.style.marginBottom = '0.5rem';
+                unitMenu.appendChild(maxLevelText);
+            }
+
+            // Sell button (always available)
+            const sellBtn = document.createElement('button');
+            sellBtn.textContent = translations[language].sell + ' (' + Math.floor(selectedUnit.cost * selectedUnit.level * 0.7) + ')';
+            sellBtn.classList.add('sell-btn');
+            sellBtn.onclick = () => selectedUnit.sell();
+            unitMenu.appendChild(sellBtn);
+
+            updateUI(); // Ensure costs are updated
+            unitMenu.style.display = 'flex';
+
+            const canvasRect = canvas.getBoundingClientRect();
+            const menuWidth = unitMenu.offsetWidth;
+            const menuHeight = unitMenu.offsetHeight;
+
+            let finalX = clientX - menuWidth / 2;
+            let finalY = clientY - menuHeight - GameConstants.UNIT_RADIUS * GameConstants.UNIT_DRAW_SCALE - 10;
+
+            if (finalX < canvasRect.left) finalX = canvasRect.left;
+            if (finalX + menuWidth > canvasRect.right) finalX = canvasRect.right - menuWidth;
+            if (finalY < canvasRect.top) finalY = canvasRect.top;
+            if (finalY + menuHeight > canvasRect.bottom) finalY = canvasRect.bottom - menuHeight;
+
+            unitMenu.style.left = `${finalX}px`;
+            unitMenu.style.top = `${finalY}px`;
+        }
+
+        function hideUnitMenu() {
+            unitMenu.style.display = 'none';
+            selectedUnit = null;
+            drawGame();
+        }
+
+        // --- Event Listeners ---
+
+        let lastPointerX, lastPointerY;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            hideMessageBox();
+            hideUnitMenu();
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = GameConstants.CANVAS_WIDTH / rect.width;
+            const scaleY = GameConstants.CANVAS_HEIGHT / rect.height;
+
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            if (placingUnit) {
+                let validPlacement = true;
+                for (const wp of waypoints) {
+                    if (Math.hypot(x - wp.x, y - wp.y) < GameConstants.TILE_SIZE * 0.8) {
+                        validPlacement = false;
+                        break;
+                    }
+                }
+                for (const unit of units) {
+                    if (Math.hypot(x - unit.x, y - unit.y) < GameConstants.UNIT_RADIUS * 2.5 * GameConstants.UNIT_DRAW_SCALE) {
+                        validPlacement = false;
+                        break;
+                    }
+                }
+
+                if (validPlacement) {
+                    let newUnit;
+                    if (placingUnit === 'soldier') {
+                        newUnit = new Unit(x, y, 'soldier');
+                    } else if (placingUnit === 'shotgun') {
+                        newUnit = new Unit(x, y, 'shotgun');
+                    } else if (placingUnit === 'sniper') {
+                        newUnit = new Unit(x, y, 'sniper');
+                    }
+
+                    if (currency >= newUnit.cost) {
+                        currency -= newUnit.cost;
+                        units.push(newUnit);
+                        newUnit.playVoiceLine('deploy');
+                        showMessageBox((newUnit.type === 'soldier' ? translations[language].soldier : newUnit.type === 'shotgun' ? translations[language].shotgunTrooper : translations[language].sniper) + translations[language].unitDeployed);
+                    } else {
+                        showMessageBox(translations[language].notEnoughMoney);
+                    }
+                } else {
+                    showMessageBox(translations[language].cannotPlaceHere);
+                }
+                placingUnit = null;
+                updateUI();
+                drawGame();
+            } else {
+                selectedUnit = null;
+                for (const unit of units) {
+                    const dist = Math.hypot(x - unit.x, y - unit.y);
+                    if (dist <= GameConstants.UNIT_RADIUS * GameConstants.UNIT_DRAW_SCALE) {
+                        showUnitMenu(unit, e.clientX, e.clientY);
+                        break;
+                    }
+                }
+                drawGame();
+            }
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (placingUnit) {
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
+                drawGame();
+            }
+        });
+
+        deploySoldierBtn.addEventListener('click', () => {
+            if (!placingUnit) {
+                placingUnit = 'soldier';
+                selectedUnit = null;
+                hideUnitMenu();
+                showMessageBox(translations[language].placingUnit + translations[language].soldier + '...');
+            }
+        });
+
+        deployShotgunBtn.addEventListener('click', () => {
+            if (!placingUnit) {
+                placingUnit = 'shotgun';
+                selectedUnit = null;
+                hideUnitMenu();
+                showMessageBox(translations[language].placingUnit + translations[language].shotgunTrooper + '...');
+            }
+        });
+
+        deploySniperBtn.addEventListener('click', () => {
+            if (!placingUnit) {
+                placingUnit = 'sniper';
+                selectedUnit = null;
+                hideUnitMenu();
+                showMessageBox(translations[language].placingUnit + translations[language].sniper + '...');
+            }
+        });
+
+        pearlOfPowerBtn.addEventListener('click', () => {
+            if (pearlOfPowerCooldown <= 0) {
+                explosionSynth.triggerAttackRelease("1s");
+                powerupSynth.triggerAttackRelease("C6", "0.5s");
+                enemies.forEach(enemy => {
+                    enemy.health -= 200;
+                });
+                pearlOfPowerCooldown = PEARL_OF_POWER_MAX_COOLDOWN;
+                updateUI();
+                showMessageBox(translations[language].pearlOfPower + ' activated!');
+            } else {
+                showMessageBox(translations[language].pearlOfPower + translations[language].onCooldown);
+            }
+        });
+
+        startNextWaveBtn.addEventListener('click', () => {
+            if (!gameRunning && enemies.length === 0) {
+                hideMessageBox();
+                hideUnitMenu();
+                spawnWave();
+            }
+        });
+
+        langSwitcher.addEventListener('click', () => {
+            language = language === 'en' ? 'ar' : 'en';
+            updateUI();
+            units.forEach(unit => {
+                unit.voiceLines = {
+                    deploy: [translations[language].yesSir, translations[language].ready],
+                    attack: [translations[language].attack, translations[language].fire],
+                    idle: [translations[language].atYourService]
+                };
+            });
+            drawGame();
+        });
+
+        // Main Menu Button Listeners
+        playGameBtn.addEventListener('click', () => {
+            mainMenu.style.display = 'none'; // Hide main menu
+            resetGame(); // Reset game state before starting
+            updateUI(); // Update UI to enable Start Next Wave button
+        });
+
+        settingsBtn.addEventListener('click', () => {
+            showMessageBox("Settings (Not implemented yet!)");
+        });
+
+        creditsBtn.addEventListener('click', () => {
+            showMessageBox("Credits:\nGame Concept: User\nDevelopment: Gemini AI\nAudio: Tone.js\nIcons: Font Awesome");
+        });
+
+        exitGameBtn.addEventListener('click', () => {
+            showMessageBox("Exiting Game (In a real app, this would close the window/app)");
+            // In a browser, you can't truly "exit" the game, but you could redirect or clear the screen.
+            // For now, it just shows a message.
+        });
+
+
+        mainMenuLangSwitcher.addEventListener('click', () => {
+            language = language === 'en' ? 'ar' : 'en';
+            updateUI(); // Update all UI elements
+            drawGame(); // Redraw canvas elements that depend on language
+        });
+
+        messageBoxCloseBtn.addEventListener('click', hideMessageBox);
+
+        // --- In-game Settings Button Listener ---
+        inGameSettingsBtn.addEventListener('click', () => {
+            // This will effectively pause the game and return to the main menu
+            gameRunning = false; // Stop game updates
+            mainMenu.style.display = 'flex'; // Show main menu
+            updateUI(); // Update UI to reflect main menu state
+            showMessageBox("Game Paused. Welcome to Main Menu.");
+        });
+
+        // --- Initialization ---
+
+        window.onload = function () {
+            resizeCanvas();
+            initializeAudio();
+            updateUI(); // Initial UI update for main menu
+            requestAnimationFrame(gameLoop); // Start the game loop (will draw main menu)
+            mainMenu.style.display = 'flex'; // Ensure main menu is visible on load
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
